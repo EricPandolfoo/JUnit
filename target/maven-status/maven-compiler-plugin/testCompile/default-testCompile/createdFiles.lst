@@ -1,0 +1,9 @@
+matchers\DiaSemanaMatcher.class
+matchers\MatchersProprios.class
+br\ce\wcaquino\servicos\AssertTest.class
+br\ce\wcaquino\servicos\CalculoValorLocacaoTest.class
+suites\SuiteExecucao.class
+builder\FilmeBuilder.class
+br\ce\wcaquino\servicos\LocacaoServiceTest.class
+builder\UsuarioBuilder.class
+br\ce\wcaquino\servicos\CalculadoraTest.class
