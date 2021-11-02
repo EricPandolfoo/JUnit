@@ -15,7 +15,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
+import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
 import java.util.Calendar;
@@ -32,8 +32,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class LocacaoServiceTest {
 
@@ -82,14 +80,14 @@ public class LocacaoServiceTest {
         try {
             service.alugarFilme(null, filmes);
             fail();
-        } catch (LocadoraException e) {
+        } catch (Exception e) {
             assertThat(e.getMessage(), is("Usuario vazio."));
         }
         System.out.println("Forma robusta");
     }
 
     @Test
-    public void naoDeveAlugarFilmeSemFilme() throws FilmeSemEstoqueException, LocadoraException {
+    public void naoDeveAlugarFilmeSemFilme() throws Exception {
         //cenario
         Usuario usuario = umUsuario().agora();
 
@@ -143,7 +141,7 @@ public class LocacaoServiceTest {
     }
 
     @Test
-    public void devePagar75PctNoFilme3() throws FilmeSemEstoqueException, LocadoraException {
+    public void devePagar75PctNoFilme3() throws Exception {
 
         //cenario
         Usuario usuario = umUsuario().agora();
@@ -162,7 +160,7 @@ public class LocacaoServiceTest {
     }
 
     @Test
-    public void devePagar50PctNoFilme4() throws FilmeSemEstoqueException, LocadoraException {
+    public void devePagar50PctNoFilme4() throws Exception {
 
         //cenario
         Usuario usuario = umUsuario().agora();
@@ -182,7 +180,7 @@ public class LocacaoServiceTest {
     }
 
     @Test
-    public void devePagar25PctNoFilme5() throws FilmeSemEstoqueException, LocadoraException {
+    public void devePagar25PctNoFilme5() throws Exception {
 
         //cenario
         Usuario usuario = umUsuario().agora();
@@ -203,7 +201,7 @@ public class LocacaoServiceTest {
     }
 
     @Test
-    public void devePagar0PctNoFilme6() throws FilmeSemEstoqueException, LocadoraException {
+    public void devePagar0PctNoFilme6() throws Exception {
 
         //cenario
         Usuario usuario = umUsuario().agora();
@@ -226,7 +224,7 @@ public class LocacaoServiceTest {
 
 
     @Test
-    public void deveDevolverNaSegundaAoAlugarNoSabado() throws FilmeSemEstoqueException, LocadoraException {
+    public void deveDevolverNaSegundaAoAlugarNoSabado() throws Exception {
         Assume.assumeTrue(DataUtils.verificarDiaSemana(new Date(), Calendar.SATURDAY));
 
         Usuario usuario = umUsuario().agora();
@@ -240,14 +238,14 @@ public class LocacaoServiceTest {
     }
 
     @Test
-    public void naoDeveAlugarFilmeParaNegativadoSPC() throws FilmeSemEstoqueException, LocadoraException {
+    public void naoDeveAlugarFilmeParaNegativadoSPC() throws Exception {
         Usuario usuario = umUsuario().agora();
         List<Filme> filmes = Arrays.asList(umFilme().agora());
 
         when(spc.possuiNegativacao(usuario)).thenReturn(true);
 
         exception.expect(LocadoraException.class);
-        exception.expectMessage("Usuário negativado.");
+        exception.expectMessage("Problemas com SPC, tente novamente");
 
         service.alugarFilme(usuario, filmes);
 
@@ -268,5 +266,37 @@ public class LocacaoServiceTest {
         service.notificarAtrasos();
 
         verify(emailService).notificarAtraso(usuario);
+    }
+
+    @Test
+    public void deveTratarErroNoSPC() throws Exception {
+        //cenario
+        Usuario usuario = umUsuario().agora();
+        List<Filme> filmes = Arrays.asList(umFilme().agora(), umFilme().agora());
+
+        when(spc.possuiNegativacao(usuario)).thenThrow(new LocadoraException("Falha catatrófica"));
+
+        //verificacao
+        exception.expect(LocadoraException.class);
+        exception.expectMessage("Problemas com SPC, tente novamente");
+
+        //acao
+        service.alugarFilme(usuario, filmes);
+    }
+
+    @Test
+    public void deveProrrogarUmaLocacao() {
+        //cenario
+        Locacao locacao = umaLocacao().agora();
+
+        //acao
+        service.prorrogarLocacao(locacao, 3);
+
+        //verificacao
+        ArgumentCaptor<Locacao> argumentCaptor = ArgumentCaptor.forClass(Locacao.class);
+        verify(repository).salvar(argumentCaptor.capture());
+        Locacao locacaoRetornada = argumentCaptor.getValue();
+
+        assertThat(locacaoRetornada.getValor(), is(5.0));
     }
 }
